@@ -1,4 +1,5 @@
 # Created by Baole Fang at 4/2/24
+import os.path
 
 from .dataset import make_dataloaders
 from .model import make_model
@@ -11,7 +12,7 @@ __all__ = ['prepare']
 def prepare(config, gpus):
     train_loader, test_loader = make_dataloaders(config['dataset'])
     if config['resume']:
-        state = torch.load(config['resume'])
+        state = torch.load(os.path.join(config['output_dir'], config['experiment'], 'checkpoints', f'epoch_{config["resume"]}.pth'))
     else:
         state = None
     model = make_model(config['model'], gpus, state)

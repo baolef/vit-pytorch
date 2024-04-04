@@ -1,4 +1,4 @@
-experiment: cifar10_
+experiment: cifar10
 epochs: 100
 output_dir: save
 resume: null

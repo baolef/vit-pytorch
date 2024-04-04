@@ -47,12 +47,23 @@ def evaluate(test_loader, model, criterion):
 
 def main(config, gpus):
     # init wandb
-    run = wandb.init(config=config, project=config['experiment'])
+    if config['resume']:
+        with open(os.path.join(config['output_dir'], config['experiment'], 'wandb.txt'), 'r') as f:
+            wandb_id = f.read().strip()
+        run = wandb.init(config=config, project=config['experiment'], resume="allow", id=wandb_id)
+    else:
+        run = wandb.init(config=config, project=config['experiment'], resume="allow")
+        with open(os.path.join(config['output_dir'], config['experiment'], 'wandb.txt'), 'w') as f:
+            f.write(run.id)
+
+    with open(os.path.join(config['output_dir'], config['experiment'], 'config.yaml'), 'w') as f:
+        yaml.dump(config, f)
 
     train_loader, test_loader, model, optimizer, scheduler = prepare(config, gpus)
     criterion = nn.CrossEntropyLoss()
+    start = 1 if not config['resume'] else config['resume'] + 1
     # train your model
-    for epoch in range(config['epochs']):
+    for epoch in range(start, config['epochs'] + 1):
         # train your model
         train_loss, train_acc = train(train_loader, model, optimizer, scheduler, criterion, epoch)
         # validate your model
@@ -60,7 +71,7 @@ def main(config, gpus):
         # log your results
         with open(os.path.join(config['output_dir'], config['experiment'], 'log.txt'), 'a') as f:
             f.write(f'Epoch {epoch}: train_loss: {train_loss}, train_acc: {train_acc}, test_loss: {test_loss}, test_acc: {test_acc}\n')
-        wandb.log({'epoch': epoch, 'train_loss': train_loss, train_acc: {train_acc}, 'test_loss': test_loss, 'test_acc': test_acc})
+        wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_acc': train_acc, 'test_loss': test_loss, 'test_acc': test_acc})
         # save your model
         if epoch % config['save_interval'] == 0:
             output_path = os.path.join(config['output_dir'], config['experiment'], 'checkpoints', f'epoch_{epoch}.pth')
@@ -86,13 +97,13 @@ if __name__ == '__main__':
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    output_root = os.path.join(config['output_dir'], config['experiment'], 'checkpoints')
-    if os.path.exists(output_root):
+    output_root = os.path.join(config['output_dir'], config['experiment'])
+    if os.path.exists(output_root) and not config['resume']:
         if not config['experiment'].endswith('_'):
             print(f'Experiment {config["experiment"]} already exists. Enter y to overwrite.')
             choice = input()
             if choice != 'y':
                 exit()
-        shutil.rmtree(os.path.join(config['output_dir'], config['experiment']))
-    os.makedirs(output_root, exist_ok=True)
+        shutil.rmtree(output_root)
+    os.makedirs(os.path.join(output_root, 'checkpoints'), exist_ok=True)
     main(config, list(map(int, args.gpus.split(','))))

@@ -1,5 +1,5 @@
-experiment: cifar100_
-epochs: 300
+experiment: cifar100
+epochs: 100
 output_dir: save
 resume: null
 save_interval: 10
@@ -8,12 +8,12 @@ optimizer:
   type: Adam
   args:
     lr: 0.0003
-    weight_decay: 0.3
+    weight_decay: 0.1
 
 scheduler:
   type: CosineAnnealingLR
   args:
-    T_max: 300
+    T_max: 100
 
 dataset:
   type: CIFAR100
