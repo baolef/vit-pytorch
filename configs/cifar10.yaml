@@ -1,5 +1,5 @@
 experiment: cifar10_
-epochs: 300
+epochs: 100
 output_dir: save
 resume: null
 save_interval: 10
@@ -13,7 +13,7 @@ optimizer:
 scheduler:
   type: CosineAnnealingLR
   args:
-    T_max: 300
+    T_max: 100
 
 dataset:
   type: CIFAR10
@@ -22,9 +22,9 @@ dataset:
     download: True
   train_transforms:
     - type: ToTensor
-    - type: Resize
-      args:
-        size: [ 256, 256 ]
+#    - type: Resize
+#      args:
+#        size: [ 256, 256 ]
     - type: RandomHorizontalFlip
     - type: Normalize
       args:
@@ -32,20 +32,20 @@ dataset:
         std: [ 0.2011,0.1987,0.2025 ]
   test_transforms:
     - type: ToTensor
-    - type: Resize
-      args:
-        size: [ 256, 256 ]
+#    - type: Resize
+#      args:
+#        size: [ 256, 256 ]
     - type: Normalize
       args:
         mean: [ 0.5074,0.4867,0.4411 ]
         std: [ 0.2011,0.1987,0.2025 ]
   train_loader:
-    batch_size: 128
+    batch_size: 1024
     shuffle: True
     num_workers: 16
     pin_memory: True
   test_loader:
-    batch_size: 128
+    batch_size: 1024
     shuffle: False
     num_workers: 16
     pin_memory: True
@@ -53,8 +53,8 @@ dataset:
 model:
   type: ViT
   args:
-    image_size: 256
-    patch_size: 32
+    image_size: 32
+    patch_size: 8
     num_classes: 10
     dim: 1024
     depth: 6
