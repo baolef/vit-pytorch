@@ -15,6 +15,7 @@ def train(train_loader, model, optimizer, scheduler, criterion, epoch):
     model.train()
     total_loss = 0
     phar = tqdm(train_loader, desc=f'Epoch {epoch}')
+    correct = 0
     for data, target in phar:
         data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
@@ -23,9 +24,11 @@ def train(train_loader, model, optimizer, scheduler, criterion, epoch):
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-        phar.set_postfix(loss=loss.item())
+        curr_correct = (pred.argmax(1) == target).sum().item()
+        correct += curr_correct
+        phar.set_postfix(loss=loss.item(), auc=curr_correct / len(data))
     scheduler.step()
-    return total_loss / len(train_loader)
+    return total_loss / len(train_loader), correct / len(train_loader.dataset)
 
 
 def evaluate(test_loader, model, criterion):
@@ -51,13 +54,13 @@ def main(config, gpus):
     # train your model
     for epoch in range(config['epochs']):
         # train your model
-        train_loss = train(train_loader, model, optimizer, scheduler, criterion, epoch)
+        train_loss, train_acc = train(train_loader, model, optimizer, scheduler, criterion, epoch)
         # validate your model
         test_loss, test_acc = evaluate(test_loader, model, criterion)
         # log your results
         with open(os.path.join(config['output_dir'], config['experiment'], 'log.txt'), 'a') as f:
-            f.write(f'Epoch {epoch}: train_loss: {train_loss}, test_loss: {test_loss}, test_acc: {test_acc}\n')
-        wandb.log({'epoch': epoch, 'train_loss': train_loss, 'test_loss': test_loss, 'test_acc': test_acc})
+            f.write(f'Epoch {epoch}: train_loss: {train_loss}, train_acc: {train_acc}, test_loss: {test_loss}, test_acc: {test_acc}\n')
+        wandb.log({'epoch': epoch, 'train_loss': train_loss, train_acc: {train_acc}, 'test_loss': test_loss, 'test_acc': test_acc})
         # save your model
         if epoch % config['save_interval'] == 0:
             output_path = os.path.join(config['output_dir'], config['experiment'], 'checkpoints', f'epoch_{epoch}.pth')
