@@ -15,8 +15,8 @@ def prepare(config, gpus):
         state = torch.load(os.path.join(config['output_dir'], config['experiment'], 'checkpoints', f'epoch_{config["resume"]}.pth'))
     else:
         state = None
-    model = make_model(config['model'], gpus, state)
+    device = torch.device(f'cuda:{gpus[0]}')
+    model = make_model(config['model'], gpus, state, device)
     optimizer = make_optimizer(config['optimizer'], model, state)
     scheduler = make_scheduler(config['scheduler'], optimizer, state)
-
-    return train_loader, test_loader, model, optimizer, scheduler
+    return train_loader, test_loader, model, optimizer, scheduler, device

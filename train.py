@@ -11,13 +11,13 @@ from tqdm import tqdm
 import shutil
 
 
-def train(train_loader, model, optimizer, scheduler, criterion, epoch):
+def train(train_loader, model, optimizer, scheduler, criterion, epoch, device):
     model.train()
     total_loss = 0
     phar = tqdm(train_loader, desc=f'Epoch {epoch}')
     correct = 0
     for data, target in phar:
-        data, target = data.cuda(), target.cuda()
+        data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         pred = model(data)
         loss = criterion(pred, target)
@@ -31,13 +31,13 @@ def train(train_loader, model, optimizer, scheduler, criterion, epoch):
     return total_loss / len(train_loader), correct / len(train_loader.dataset)
 
 
-def evaluate(test_loader, model, criterion):
+def evaluate(test_loader, model, criterion, device):
     model.eval()
     total_loss = 0
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.cuda(), target.cuda()
+            data, target = data.to(device), target.to(device)
             pred = model(data)
             loss = criterion(pred, target)
             total_loss += loss.item()
@@ -59,19 +59,20 @@ def main(config, gpus):
     with open(os.path.join(config['output_dir'], config['experiment'], 'config.yaml'), 'w') as f:
         yaml.dump(config, f)
 
-    train_loader, test_loader, model, optimizer, scheduler = prepare(config, gpus)
+    train_loader, test_loader, model, optimizer, scheduler, device = prepare(config, gpus)
     criterion = nn.CrossEntropyLoss()
     start = 1 if not config['resume'] else config['resume'] + 1
     # train your model
     for epoch in range(start, config['epochs'] + 1):
+        lr = scheduler.get_last_lr()[0]
         # train your model
-        train_loss, train_acc = train(train_loader, model, optimizer, scheduler, criterion, epoch)
+        train_loss, train_acc = train(train_loader, model, optimizer, scheduler, criterion, epoch, device)
         # validate your model
-        test_loss, test_acc = evaluate(test_loader, model, criterion)
+        test_loss, test_acc = evaluate(test_loader, model, criterion, device)
         # log your results
         with open(os.path.join(config['output_dir'], config['experiment'], 'log.txt'), 'a') as f:
-            f.write(f'Epoch {epoch}: train_loss: {train_loss}, train_acc: {train_acc}, test_loss: {test_loss}, test_acc: {test_acc}\n')
-        wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_acc': train_acc, 'test_loss': test_loss, 'test_acc': test_acc})
+            f.write(f'Epoch {epoch}: train_loss: {train_loss}, train_acc: {train_acc}, test_loss: {test_loss}, test_acc: {test_acc}, lr: {lr}\n')
+        wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_acc': train_acc, 'test_loss': test_loss, 'test_acc': test_acc, 'lr': lr})
         # save your model
         if epoch % config['save_interval'] == 0:
             output_path = os.path.join(config['output_dir'], config['experiment'], 'checkpoints', f'epoch_{epoch}.pth')
@@ -79,11 +80,12 @@ def main(config, gpus):
                 model_state = model.module.state_dict()
             else:
                 model_state = model.state_dict()
-            torch.save({
+            state = {
                 'model': model_state,
                 'optimizer': optimizer.state_dict(),
                 'scheduler': scheduler.state_dict()
-            }, output_path)
+            }
+            torch.save(state, output_path)
             wandb.save(output_path)
     run.finish()
 
