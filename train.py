@@ -86,6 +86,8 @@ def main(config, gpus):
                 'scheduler': scheduler.state_dict()
             }
             torch.save(state, output_path)
+            output_path = os.path.join(config['output_dir'], config['experiment'], 'checkpoints', 'epoch_latest.pth')
+            torch.save(state, output_path)
             wandb.save(output_path)
     run.finish()
 
@@ -94,6 +96,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='configs/cifar100.yaml', help='path to the configuration file')
     parser.add_argument('--gpus', type=str, default='0', help='gpus to use')
+    parser.add_argument('--overwrite', action='store_true', help='overwrite existing experiment')
     args = parser.parse_args()
 
     with open(args.config, 'r') as f:
@@ -101,7 +104,7 @@ if __name__ == '__main__':
 
     output_root = os.path.join(config['output_dir'], config['experiment'])
     if os.path.exists(output_root) and not config['resume']:
-        if not config['experiment'].endswith('_'):
+        if not args.overwrite:
             print(f'Experiment {config["experiment"]} already exists. Enter y to overwrite.')
             choice = input()
             if choice != 'y':
