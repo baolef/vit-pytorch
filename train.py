@@ -50,9 +50,9 @@ def main(config, gpus):
     if config['resume']:
         with open(os.path.join(config['output_dir'], config['experiment'], 'wandb.txt'), 'r') as f:
             wandb_id = f.read().strip()
-        run = wandb.init(config=config, project=config['experiment'], resume="allow", id=wandb_id)
+        run = wandb.init(config=config, project=config['dataset']['type'], resume="allow", id=wandb_id)
     else:
-        run = wandb.init(config=config, project=config['experiment'], resume="allow")
+        run = wandb.init(config=config, project=config['dataset']['type'], resume="allow")
         with open(os.path.join(config['output_dir'], config['experiment'], 'wandb.txt'), 'w') as f:
             f.write(run.id)
 

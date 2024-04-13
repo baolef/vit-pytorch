@@ -1,4 +1,4 @@
-experiment: imagenet
+experiment: cifar100-m
 epochs: 100
 output_dir: save
 resume: null
